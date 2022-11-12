@@ -1,0 +1,1 @@
+“Pick up a product. Look at the barcode. If the first 3 numbers are 690 or 691 or 692, the product was made in China.”
