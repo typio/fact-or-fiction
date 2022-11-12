@@ -1,0 +1,1 @@
+When using an ATM, customers should "press the cancel button twice before inserting the card. If anyone has set up the keypad to steal your pin code, this will cancel that set up."
