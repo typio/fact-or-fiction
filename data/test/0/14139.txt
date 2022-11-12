@@ -1,1 +1,0 @@
-“If we stopped testing right now, we'd have very few cases, if any.”
