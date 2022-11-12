@@ -1,1 +1,0 @@
-COVID-19’s “contagion probability” between two people is 70% if the carrier is not masked, 5% if the carrier is masked, and 1.5% if both parties are.

@@ -1,9 +1,10 @@
-import os
-import pandas as pd
-from bs4 import BeautifulSoup
-
-import requests
 import concurrent.futures
+import os
+import shutil
+
+import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 
 data = pd.DataFrame(columns=['Label', 'Claim'])
 
@@ -13,22 +14,22 @@ TRUE = 1
 
 urls = {
     "https://www.snopes.com/fact-check/rating/true/?pagenum=PAGE_INDEX": [TRUE, PAGES],
-    "https://www.snopes.com/fact-check/rating/mostly-true/?pagenum=PAGE_INDEX": [TRUE, PAGES],
-    "https://www.snopes.com/fact-check/rating/legit/?pagenum=PAGE_INDEX": [TRUE, PAGES],
-    "https://www.snopes.com/fact-check/rating/correct-attribution/?pagenum=PAGE_INDEX": [TRUE, PAGES],
+    # "https://www.snopes.com/fact-check/rating/mostly-true/?pagenum=PAGE_INDEX": [TRUE, PAGES],
+    # "https://www.snopes.com/fact-check/rating/legit/?pagenum=PAGE_INDEX": [TRUE, PAGES],
+    # "https://www.snopes.com/fact-check/rating/correct-attribution/?pagenum=PAGE_INDEX": [TRUE, PAGES],
 
     "https://www.snopes.com/fact-check/rating/false/?pagenum=PAGE_INDEX": [FALSE, PAGES],
-    "https://www.snopes.com/fact-check/rating/mostly-false/?pagenum=PAGE_INDEX": [FALSE, PAGES],
-    "https://www.snopes.com/fact-check/rating/scam/?pagenum=PAGE_INDEX": [FALSE, PAGES],
-    "https://www.snopes.com/fact-check/rating/misattributed/?pagenum=PAGE_INDEX": [FALSE, PAGES],
-    "https://www.snopes.com/fact-check/rating/miscaptioned/?pagenum=PAGE_INDEX": [FALSE, PAGES],
-    "https://www.snopes.com/fact-check/rating/unfounded/?pagenum=PAGE_INDEX": [FALSE, PAGES],
+    # "https://www.snopes.com/fact-check/rating/mostly-false/?pagenum=PAGE_INDEX": [FALSE, PAGES],
+    # "https://www.snopes.com/fact-check/rating/scam/?pagenum=PAGE_INDEX": [FALSE, PAGES],
+    # "https://www.snopes.com/fact-check/rating/misattributed/?pagenum=PAGE_INDEX": [FALSE, PAGES],
+    # "https://www.snopes.com/fact-check/rating/miscaptioned/?pagenum=PAGE_INDEX": [FALSE, PAGES],
+    # "https://www.snopes.com/fact-check/rating/unfounded/?pagenum=PAGE_INDEX": [FALSE, PAGES],
 
     "https://www.politifact.com/factchecks/list/?page=PAGE_INDEX&ruling=true": [TRUE, PAGES],
-    "https://www.politifact.com/factchecks/list/?page=PAGE_INDEX&ruling=mostly-true": [TRUE, PAGES],
+    # "https://www.politifact.com/factchecks/list/?page=PAGE_INDEX&ruling=mostly-true": [TRUE, PAGES],
 
-    "https://www.politifact.com/factchecks/list/?page=PAGE_INDEX&ruling=barely-true": [FALSE, PAGES],
-    "https://www.politifact.com/factchecks/list/?page=PAGE_INDEX&ruling=false": [FALSE, PAGES],
+    # "https://www.politifact.com/factchecks/list/?page=PAGE_INDEX&ruling=barely-true": [FALSE, PAGES],
+    # "https://www.politifact.com/factchecks/list/?page=PAGE_INDEX&ruling=false": [FALSE, PAGES],
     "https://www.politifact.com/factchecks/list/?page=PAGE_INDEX&ruling=pants-fire": [FALSE, PAGES],
 }
 
@@ -79,19 +80,33 @@ def write_file(str, label, i, set):
 
 
 def build_data():
-    with concurrent.futures.ThreadPoolExecutor(max_workers=100) as e:
+    if os.path.exists('data'):
+        shutil.rmtree('data')  # lol danger
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=1000) as e:
         for url, params in urls.items():
             for i in range(params[1]):
                 e.submit(request_claim, url, params[0], i)
 
     global data
+    # data = pd.read_csv(os.path.join('data', 'scrape_data.csv'))
+    trues = data.loc[data['Label'] == 1].copy()
+    falses = data.loc[data['Label'] == 0].copy()
+    numTrues, numFalses = (len(trues), len(falses))
+    if (numTrues > numFalses):
+        trues = trues.head(-(numTrues-numFalses))
+    else:
+        falses = falses.head(-(numFalses-numTrues))
+
+    data = pd.concat([trues, falses])
     data = data.sample(frac=1).reset_index(drop=True)  # shuffle
-    data.to_csv('scrape_data.csv', index=False)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=100) as e:
         for i, row in data.iterrows():
-            set = 'train' if i < len(data)/2 else 'test'
+            set = 'train' if i < len(data) * .8 else 'test'
             e.submit(write_file, row['Claim'], row['Label'], i, set)
+
+    data.to_csv(os.path.join('data', 'scrape_data.csv'), index=False)
 
 
 build_data()
