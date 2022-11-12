@@ -1,1 +1,0 @@
-“Pipelines do not freeze. They are naturally insulated. They’re buried beneath the ground.”
